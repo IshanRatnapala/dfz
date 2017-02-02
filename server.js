@@ -34,10 +34,18 @@ app.get('/todos', function (req, res) {
 
     if (queryParams.hasOwnProperty('completed') &&
         queryParams.completed === 'true') {
-        res.json(_.where(filteredTodos, {completed: true}));
+        filteredTodos = _.where(filteredTodos, { completed: true });
     } else if (queryParams.hasOwnProperty('completed') &&
         queryParams.completed === 'false') {
-        res.json(_.where(filteredTodos, {completed: false}));
+        filteredTodos = _.where(filteredTodos, { completed: false });
+    }
+
+    if (queryParams.hasOwnProperty('q') &&
+        queryParams.q.length > 0) {
+        filteredTodos = _.filter(filteredTodos, function (item) {
+            return item.description.toLowerCase()
+                    .indexOf(queryParams.q.toLowerCase()) !== -1;
+        });
     }
 
     res.json(filteredTodos);
