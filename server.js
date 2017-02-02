@@ -29,13 +29,24 @@ app.use(middleware.logger);
 
 // GET /todos
 app.get('/todos', function (req, res) {
-    res.json(todos);
+    var queryParams = req.query;
+    var filteredTodos = todos;
+
+    if (queryParams.hasOwnProperty('completed') &&
+        queryParams.completed === 'true') {
+        res.json(_.where(filteredTodos, {completed: true}));
+    } else if (queryParams.hasOwnProperty('completed') &&
+        queryParams.completed === 'false') {
+        res.json(_.where(filteredTodos, {completed: false}));
+    }
+
+    res.json(filteredTodos);
 });
 
 // GET /todos/:id
 app.get('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
-    var filteredTodo = _.findWhere(todos, {id: todoId});
+    var filteredTodo = _.findWhere(todos, { id: todoId });
 
     if (filteredTodo) {
         res.json(filteredTodo);
@@ -48,15 +59,60 @@ app.get('/todos/:id', function (req, res) {
 app.post('/todos', function (req, res) {
     var body = _.pick(req.body, 'description', 'completed');
 
-    if (!_.isBoolean(body.completed) ||
-        !_.isString(body.description) ||
-        !body.description.trim().length) {
+    if (!_.isBoolean(body.completed) || !_.isString(body.description) || !body.description.trim().length) {
         return res.status(400).send();
     }
 
     body.id = todoNextId++;
     body.description = body.description.trim();
     todos.push(body);
+    res.json(todos);
+});
+
+// DELETE /todos/:id
+app.delete('/todos/:id', function (req, res) {
+    var todoId = parseInt(req.params.id, 10);
+    var filteredTodo = _.findWhere(todos, { id: todoId });
+
+    if (filteredTodo) {
+        todos = _.without(todos, filteredTodo);
+        res.send(todos);
+    } else {
+        res.status(404).json({ "error": "Todo not found." });
+    }
+});
+
+// PUT /todos/:id
+app.put('/todos/:id', function (req, res) {
+    var body = _.pick(req.body, 'description', 'completed');
+    var todoId = parseInt(req.params.id, 10);
+    var filteredTodo = _.findWhere(todos, { id: todoId });
+    var validAttributes = {};
+
+    if (!filteredTodo) {
+        return res.status(404).send();
+    }
+
+    if (body.hasOwnProperty('completed') &&
+        _.isBoolean(body.completed)) {
+        validAttributes.completed = body.completed;
+    } else if (body.hasOwnProperty('completed')) {
+        return res.status(400).send();
+    } else {
+
+    }
+
+    if (body.hasOwnProperty('description') &&
+        _.isString(body.description) &&
+        body.description.trim().length) {
+        validAttributes.description = body.description;
+    } else if (body.hasOwnProperty('description')) {
+        return res.status(400).send();
+    } else {
+
+    }
+
+    _.extend(filteredTodo, validAttributes);
     res.json(todos);
 });
 
