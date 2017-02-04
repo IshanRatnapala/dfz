@@ -7,25 +7,6 @@ var db = require('./db.js');
 var app = express();
 const PORT = process.env.PORT || 3000;
 
-var todoNextId = 1;
-var todos = [];
-// var todos = [
-//     {
-//         id: 1,
-//         description: "Eat chocos",
-//         completed: false
-//     },
-//     {
-//         id: 2,
-//         description: "Go to the market",
-//         completed: false
-//     },
-//     {
-//         id: 3,
-//         description: "Eat lunch",
-//         completed: true
-//     }
-// ];
 app.use(bodyParser.json());
 app.use(middleware.logger);
 
@@ -56,13 +37,27 @@ app.get('/todos', function (req, res) {
 // GET /todos/:id
 app.get('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
-    var filteredTodo = _.findWhere(todos, { id: todoId });
 
-    if (filteredTodo) {
-        res.json(filteredTodo);
-    } else {
-        res.status(404).send();
-    }
+    db.todo.findById(todoId)
+        .then(
+            function (todo) {
+                if (!!todo) {
+                    res.json(todo);
+                } else {
+                    res.status(404).send();
+                }
+            },
+            function (e) {
+                res.status(500).send();
+            });
+
+    //
+    // var filteredTodo = _.findWhere(todos, { id: todoId });
+    // if (filteredTodo) {
+    //     res.json(filteredTodo);
+    // } else {
+    //     res.status(404).send();
+    // }
 });
 
 // POST /todos
