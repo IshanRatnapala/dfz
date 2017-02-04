@@ -12,26 +12,29 @@ app.use(middleware.logger);
 
 // GET /todos
 app.get('/todos', function (req, res) {
-    var queryParams = req.query;
-    var filteredTodos = todos;
+    var query = req.query;
+    var filters = {};
 
-    if (queryParams.hasOwnProperty('completed') &&
-        queryParams.completed === 'true') {
-        filteredTodos = _.where(filteredTodos, { completed: true });
-    } else if (queryParams.hasOwnProperty('completed') &&
-        queryParams.completed === 'false') {
-        filteredTodos = _.where(filteredTodos, { completed: false });
+    if (query.hasOwnProperty('completed')) {
+        if (query.completed === 'true') {
+            filters.completed = true;
+        } else if (query.completed === 'false') {
+            filters.completed = false;
+        }
+    }
+    if (query.hasOwnProperty('q') && query.q.length > 0) {
+        filters.description = {
+            $like: '%' + query.q + '%'
+        };
     }
 
-    if (queryParams.hasOwnProperty('q') &&
-        queryParams.q.length > 0) {
-        filteredTodos = _.filter(filteredTodos, function (item) {
-            return item.description.toLowerCase()
-                    .indexOf(queryParams.q.toLowerCase()) !== -1;
-        });
-    }
-
-    res.json(filteredTodos);
+    db.todo.findAll({
+        where: filters
+    }).then(function (todos) {
+        res.json(todos);
+    }).catch(function (e) {
+        res.status(500).send();
+    });
 });
 
 // GET /todos/:id
@@ -50,14 +53,6 @@ app.get('/todos/:id', function (req, res) {
             function (e) {
                 res.status(500).send();
             });
-
-    //
-    // var filteredTodo = _.findWhere(todos, { id: todoId });
-    // if (filteredTodo) {
-    //     res.json(filteredTodo);
-    // } else {
-    //     res.status(404).send();
-    // }
 });
 
 // POST /todos
@@ -71,15 +66,6 @@ app.post('/todos', function (req, res) {
         .catch(function (e) {
             res.send(400).json(e);
         });
-
-    // if (!_.isBoolean(body.completed) || !_.isString(body.description) || !body.description.trim().length) {
-    //     return res.status(400).send();
-    // }
-    //
-    // body.id = todoNextId++;
-    // body.description = body.description.trim();
-    // todos.push(body);
-    // res.json(todos);
 });
 
 // DELETE /todos/:id
