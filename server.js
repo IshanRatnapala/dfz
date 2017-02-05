@@ -3,6 +3,7 @@ var bodyParser = require('body-parser');
 var _ = require('underscore');
 var middleware = require('./middleware');
 var db = require('./db.js');
+var bcrypt = require('bcrypt-nodejs');
 
 var app = express();
 const PORT = process.env.PORT || 3000;
@@ -129,6 +130,20 @@ app.post('/user', function (req, res) {
             res.status(400).json(e);
         }
     )
+});
+
+// POST /user/login
+app.post('/user/login', function (req, res) {
+    var body = _.pick(req.body, 'email', 'password');
+
+    db.user.authenticate(body).then(
+        function (user) {
+            res.json(user.toPublicJSON());
+        },
+        function () {
+            res.status(401).send();
+        }
+    );
 });
 
 
