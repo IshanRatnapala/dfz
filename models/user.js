@@ -60,12 +60,34 @@ module.exports = function (sequelize, DataTypes) {
                             },
                             function (e) {
                                 reject();
-                            }
-                        );
+                            });
                     } else {
                         reject();
                     }
                 })
+            },
+            findByToken: function (token) {
+                return new Promise(function (resolve, reject) {
+                    try {
+                        var decodedJWT = jwt.verify(token, 'qwerty');
+                        var bytes = cryptojs.AES.decrypt(decodedJWT.token, 'asd123');
+                        var tokenData = JSON.parse(bytes.toString(cryptojs.enc.Utf8));
+
+                        user.findById(tokenData.id).then(
+                            function (user) {
+                                if (user) {
+                                    resolve(user);
+                                } else {
+                                    reject();
+                                }
+                            },
+                            function () {
+                                reject();
+                            })
+                    } catch (e) {
+                        reject();
+                    }
+                });
             }
         },
         instanceMethods: {
@@ -74,7 +96,7 @@ module.exports = function (sequelize, DataTypes) {
                 return _.pick(json, 'id', 'email', 'createdAt', 'updatedAt');
             },
             generateToken: function (type) {
-                if(!_.isString(type)) {
+                if (!_.isString(type)) {
                     return undefined;
                 }
                 try {
@@ -82,7 +104,7 @@ module.exports = function (sequelize, DataTypes) {
                         id: this.get('id'),
                         type: type
                     });
-                    var encryptedData = cryptojs.AES.encrypt(stringData, 'asd123!@#').toString();
+                    var encryptedData = cryptojs.AES.encrypt(stringData, 'asd123').toString();
                     var token = jwt.sign({
                         token: encryptedData
                     }, 'qwerty');
