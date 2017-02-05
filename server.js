@@ -58,7 +58,7 @@ app.get('/todos/:id', function (req, res) {
 // POST /todos
 app.post('/todos', function (req, res) {
     var body = _.pick(req.body, 'description', 'completed');
-
+    body.description = body.description.trim();
     db.todo.create(body)
         .then(function (todo) {
             res.json(todo.toJSON());
@@ -71,48 +71,54 @@ app.post('/todos', function (req, res) {
 // DELETE /todos/:id
 app.delete('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
-    var filteredTodo = _.findWhere(todos, { id: todoId });
 
-    if (filteredTodo) {
-        todos = _.without(todos, filteredTodo);
-        res.send(todos);
-    } else {
-        res.status(404).json({ "error": "Todo not found." });
-    }
+    db.todo.destroy({
+        where: { id: todoId }
+    }).then(
+        function (rowsDeleted) {
+            if (!!rowsDeleted) {
+                res.status(204).send();
+            } else {
+                res.status(404).json({ error: "No todo with id" });
+            }
+        },
+        function () {
+            res.status(500).send();
+        });
 });
 
 // PUT /todos/:id
 app.put('/todos/:id', function (req, res) {
     var body = _.pick(req.body, 'description', 'completed');
     var todoId = parseInt(req.params.id, 10);
-    var filteredTodo = _.findWhere(todos, { id: todoId });
-    var validAttributes = {};
+    var attributes = {};
 
-    if (!filteredTodo) {
-        return res.status(404).send();
+    if (body.hasOwnProperty('completed')) {
+        attributes.completed = body.completed;
     }
 
-    if (body.hasOwnProperty('completed') &&
-        _.isBoolean(body.completed)) {
-        validAttributes.completed = body.completed;
-    } else if (body.hasOwnProperty('completed')) {
-        return res.status(400).send();
-    } else {
-
+    if (body.hasOwnProperty('description')) {
+        attributes.description = body.description.trim();
     }
 
-    if (body.hasOwnProperty('description') &&
-        _.isString(body.description) &&
-        body.description.trim().length) {
-        validAttributes.description = body.description;
-    } else if (body.hasOwnProperty('description')) {
-        return res.status(400).send();
-    } else {
-
-    }
-
-    _.extend(filteredTodo, validAttributes);
-    res.json(todos);
+    db.todo.findById(todoId)
+        .then(
+            function (todo) {
+                if (todo) {
+                    todo.update(attributes)
+                        .then(
+                            function (todo) {
+                                res.json(todo);
+                            },
+                            function (e) {
+                                res.status(400).json(e);
+                            });
+                } else {
+                    res.status(404).send();
+                }
+            }, function () {
+                res.status(500).send();
+            });
 });
 
 app.use(express.static(__dirname + '/public'));
