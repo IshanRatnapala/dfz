@@ -15,5 +15,13 @@ module.exports= function (sequelize, DataTypes) {
                 isBoolean: true
             }
         }
+    }, {
+        hooks: {
+            beforeValidate: function (todo, options) {
+                if (typeof todo.description === 'string') {
+                    todo.description = todo.description.trim();
+                }
+            }
+        }
     });
 };

@@ -36,7 +36,6 @@ app.get('/todos', function (req, res) {
         res.status(500).send();
     });
 });
-
 // GET /todos/:id
 app.get('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
@@ -54,20 +53,18 @@ app.get('/todos/:id', function (req, res) {
                 res.status(500).send();
             });
 });
-
 // POST /todos
 app.post('/todos', function (req, res) {
     var body = _.pick(req.body, 'description', 'completed');
-    body.description = body.description.trim();
-    db.todo.create(body)
-        .then(function (todo) {
+    body.description = body.description;
+    db.todo.create(body).then(
+        function (todo) {
             res.json(todo.toJSON());
-        })
-        .catch(function (e) {
+        },
+        function (e) {
             res.send(400).json(e);
         });
 });
-
 // DELETE /todos/:id
 app.delete('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
@@ -86,7 +83,6 @@ app.delete('/todos/:id', function (req, res) {
             res.status(500).send();
         });
 });
-
 // PUT /todos/:id
 app.put('/todos/:id', function (req, res) {
     var body = _.pick(req.body, 'description', 'completed');
@@ -98,7 +94,7 @@ app.put('/todos/:id', function (req, res) {
     }
 
     if (body.hasOwnProperty('description')) {
-        attributes.description = body.description.trim();
+        attributes.description = body.description;
     }
 
     db.todo.findById(todoId)
@@ -120,6 +116,21 @@ app.put('/todos/:id', function (req, res) {
                 res.status(500).send();
             });
 });
+
+//POST /user
+app.post('/user', function (req, res) {
+    var body = _.pick(req.body, 'email', 'password');
+
+    db.user.create(body).then(
+        function (user) {
+            res.json(user.toPublicJSON());
+        },
+        function (e) {
+            res.status(400).json(e);
+        }
+    )
+});
+
 
 app.use(express.static(__dirname + '/public'));
 
