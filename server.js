@@ -14,7 +14,9 @@ app.use(middleware.logger);
 // GET /todos
 app.get('/todos', middleware.requireAuth, function (req, res) {
     var query = req.query;
-    var filters = {};
+    var filters = {
+        userId: req.user.get('id')
+    };
 
     if (query.hasOwnProperty('completed')) {
         if (query.completed === 'true') {
@@ -34,14 +36,19 @@ app.get('/todos', middleware.requireAuth, function (req, res) {
     }).then(function (todos) {
         res.json(todos);
     }).catch(function (e) {
-        res.status(500).send();
+        res.status(500).json(e);
     });
 });
 // GET /todos/:id
 app.get('/todos/:id', middleware.requireAuth, function (req, res) {
     var todoId = parseInt(req.params.id, 10);
 
-    db.todo.findById(todoId)
+    db.todo.findOne({
+        where: {
+            id: todoId,
+            userId: req.user.get('id')
+        }
+    })
         .then(
             function (todo) {
                 if (!!todo) {
@@ -60,7 +67,13 @@ app.post('/todos', middleware.requireAuth, function (req, res) {
     body.description = body.description;
     db.todo.create(body).then(
         function (todo) {
-            res.json(todo.toJSON());
+            req.user.addTodo(todo)
+                .then(function () {
+                    return todo.reload();
+                })
+                .then(function (todo) {
+                    res.json(todo);
+                })
         },
         function (e) {
             res.send(400).json(e);
@@ -71,7 +84,10 @@ app.delete('/todos/:id', middleware.requireAuth, function (req, res) {
     var todoId = parseInt(req.params.id, 10);
 
     db.todo.destroy({
-        where: { id: todoId }
+        where: {
+            id: todoId,
+            userId: req.user.get('id')
+        }
     }).then(
         function (rowsDeleted) {
             if (!!rowsDeleted) {
@@ -98,7 +114,12 @@ app.put('/todos/:id', middleware.requireAuth, function (req, res) {
         attributes.description = body.description;
     }
 
-    db.todo.findById(todoId)
+    db.todo.findOne({
+        where: {
+            id: todoId,
+            userId: req.user.get('id')
+        }
+    })
         .then(
             function (todo) {
                 if (todo) {
