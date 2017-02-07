@@ -3804,7 +3804,7 @@
                     // throw e; // it will be catched by terminal
                 } finally {
                     onPause = $.noop;
-                    if (!was_paused) {
+                    if (!was_paused && self.enabled()) {
                         // resume login if user didn't call pause in onInit
                         // if user pause in onInit wait with exec until it
                         // resume
@@ -4568,7 +4568,7 @@
                 return self;
             },
             // -------------------------------------------------------------
-            // :: Disable/Enable terminal that can be enabled by click
+            // :: Disable/Enable terminal that can't be enabled by click
             // -------------------------------------------------------------
             freeze: function(freeze) {
                 when_ready(function ready() {
@@ -5164,7 +5164,7 @@
                         } else {
                             init();
                         }
-                        if (!was_paused) {
+                        if (!was_paused && self.enabled()) {
                             self.resume();
                         }
                     });

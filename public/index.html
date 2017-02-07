@@ -7,23 +7,64 @@
     <script src="js/jquery.terminal.js"></script>
     <script src="js/jquery.mousewheel-min.js"></script>
     <link href="css/jquery.terminal-1.0.1.css" rel="stylesheet"/>
+
+    <style>
+        body {
+            background: yellowgreen;
+        }
+    </style>
 </head>
 <body>
     <h1>Hello People!</h1>
     <p>Nothing to see here :)</p>
 
-    <div id="asd"></div>
+    <div id="console"></div>
+
     <script>
         $(function() {
-            $('body').terminal(function(command, term) {
-                term.pause();
-                $.post('script.php', {command: command}).then(function(response) {
-                    term.echo(response).resume();
-                });
+            terminal = $('#console').terminal({
+                echo: function(arg1) {
+                    this.echo(arg1);
+                },
+                rpc: 'some_file.php',
+                calc: {
+                    add: function(a, b) {
+                        this.echo(a+b);
+                    },
+                    sub: function(a, b) {
+                        this.echo(a-b);
+                    }
+                }
             }, {
-                greetings: 'Simple php example',
-                onBlur: function() {
-                    return false;
+                greetings: false,
+                enabled: false,
+//                onBlur: function() {
+//                    return false;
+//                },
+                login: function(user, password, callback) {
+                    if (user == 'asd' && password == 'asd') {
+                        callback('AUTHENTICATION TOKEN');
+                        console.log(this.token(true));
+                        debugger
+                    } else {
+                        callback(null);
+                    }
+                },
+                keypress: function(e) {
+                    if (e.which == 96) {
+                        return false;
+                    }
+                }
+            })
+//                .freeze(true);
+
+            $(document.documentElement).keypress(function(e) {
+                if (e.charCode == 96) {
+                    console.log('jaja');
+//                    self.slideToggle('fast');
+//                    self.terminal.command_line.set('');
+//                    terminal.focus(focus = !focus);
+                    terminal.freeze(true);
                 }
             });
         });
