@@ -3,9 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>Dragfreeze</title>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery.terminal.js"></script>
+    <script src="js/jquery.mousewheel-min.js"></script>
+    <link href="css/jquery.terminal-1.0.1.css" rel="stylesheet"/>
 </head>
 <body>
     <h1>Hello People!</h1>
     <p>Nothing to see here :)</p>
+
+    <div id="asd"></div>
+    <script>
+        $(function() {
+            $('body').terminal(function(command, term) {
+                term.pause();
+                $.post('script.php', {command: command}).then(function(response) {
+                    term.echo(response).resume();
+                });
+            }, {
+                greetings: 'Simple php example',
+                onBlur: function() {
+                    return false;
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+{
+  "name": "web-server",
+  "description": "",
+  "main": "index.js",
+  "authors": [
+    "Dragfreeze <Dragfreeze@gmail.com>"
+  ],
+  "license": "ISC",
+  "homepage": "https://github.com/IshanRatnapala/dfz",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery.terminal": "^1.0.1"
+  }
+}
