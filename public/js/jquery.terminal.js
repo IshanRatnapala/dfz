@@ -31,7 +31,7 @@
  * Copyright (c) 2007-2013 Alexandru Marasteanu <hello at alexei dot ro>
  * licensed under 3 clause BSD license
  *
- * Date: Sun, 05 Feb 2017 17:28:26 +0000
+ * Date: Wed, 08 Feb 2017 16:06:21 +0000
  */
 
 /* TODO:
@@ -946,6 +946,10 @@
             return len > command.length ? command.length : len;
         }
         function get_key(e) {
+            if (!e.key) {
+                throw new Error('key event property not supported try ' +
+                                'https://github.com/cvan/keyboardevent-key-polyfill');
+            }
             var key = e.key.toUpperCase();
             if (key === 'CONTROL') {
                 return 'CTRL';
@@ -1017,10 +1021,13 @@
                 return true;
             },
             'ARROWUP': prev_history,
+            'UP': prev_history,
             'CTRL+P': prev_history,
             'ARROWDOWN': next_history,
+            'DOWN': next_history, // IE
             'CTRL+N': next_history,
             'ARROWLEFT': left,
+            'LEFT': left, // IE
             'CTRL+B': left,
             'CTRL+ARROWLEFT': function() {
                 // jump to one character after last space before prevoius word
@@ -1067,6 +1074,7 @@
             },
             'ARROWRIGHT': right,
             'CTRL+F': right,
+            'RIGHT': right, // IE
             'CTRL+ARROWRIGHT': function() {
                 // jump to beginning or end of the word
                 if (command[position] === ' ') {
@@ -1153,9 +1161,11 @@
                 self.set(history.previous());
             }
             first_up_history = false;
+            return false;
         }
         function next_history() {
             self.set(history.end() ? last_command : history.next());
+            return false;
         }
         function left() {
             if (position > 0) {
@@ -1536,12 +1546,9 @@
         // ---------------------------------------------------------------------
         // :: Paste content to terminal using hidden textarea
         // ---------------------------------------------------------------------
-        function paste(e) {
+        function paste() {
             if (paste_count++ > 0) {
                 return;
-            }
-            if (e.originalEvent) {
-                e = e.originalEvent;
             }
             if (self.isenabled()) {
                 var clip = self.find('textarea');
@@ -1576,12 +1583,17 @@
                     }
                 }
                 var key = get_key(e);
-                skip_insert = ['SHIFT+INSERT', 'BACKSPACE'].indexOf(key) !== -1;
+                // shift+insert and backspace don't fire keypress on Chromium/Linux
+                // CTRL+V don't fire in IE11
+                skip_insert = ['SHIFT+INSERT', 'BACKSPACE', 'CTRL+V'].indexOf(key) !== -1;
                 if (e.which !== 38 && !(e.which === 80 && e.ctrlKey)) {
                     first_up_history = true;
                 }
                 if ($.isFunction(keymap[key])) {
                     result = keymap[key]();
+                    if (result === true) {
+                        return;
+                    }
                     if (result !== undefined) {
                         return result;
                     }
@@ -1688,7 +1700,16 @@
                 if (typeof new_keymap === 'undefined') {
                     return keymap;
                 } else {
-                    keymap = $.extend({}, default_keymap, new_keymap || {});
+                    keymap = $.extend(
+                        {},
+                        default_keymap,
+                        $.omap(new_keymap || {}, function(key, fn) {
+                            return function(e) {
+                                // new keymap function will get default as 2nd argument
+                                return fn(e, default_keymap[key]);
+                            };
+                        })
+                    );
                     return self;
                 }
             },
@@ -1862,6 +1883,9 @@
                 result = options.keypress(e);
             }
             var key = e.key || String.fromCharCode(e.which);
+            if (key.toUpperCase() === 'SPACEBAR') {
+                key = ' ';
+            }
             //$.terminal.active().echo(JSON.stringify(result));
             if (result === undefined || result) {
                 if (enabled) {
@@ -1890,7 +1914,6 @@
         }
         function input(e) {
             if (no_keypress && !skip_insert) {
-                // shift insert and backspace don't fire keypress on Linux/Chrome
                 // Some Androids don't fire keypress - #39
                 var val = clip.val();
                 if (val !== '' || e.which === 8) {  // #209 ; 8 - backspace
@@ -1968,7 +1991,7 @@
     var is_android = navigator.userAgent.toLowerCase().indexOf('android') !== -1;
     // -------------------------------------------------------------------------
     var is_touch = (function() {
-        return 'ontouchstart' in window || window.DocumentTouch &&
+        return 'ontouchstart' in window || !!window.DocumentTouch &&
             document instanceof window.DocumentTouch;
     })();
     // -------------------------------------------------------------------------
@@ -2015,39 +2038,39 @@
         version: '1.0.1',
         // colors from http://www.w3.org/wiki/CSS/Properties/color/keywords
         color_names: [
-            'black', 'silver', 'gray', 'white', 'maroon', 'red', 'purple',
-            'fuchsia', 'green', 'lime', 'olive', 'yellow', 'navy', 'blue',
-            'teal', 'aqua', 'aliceblue', 'antiquewhite', 'aqua', 'aquamarine',
-            'azure', 'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
-            'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse',
-            'chocolate', 'coral', 'cornflowerblue', 'cornsilk', 'crimson',
-            'cyan', 'darkblue', 'darkcyan', 'darkgoldenrod', 'darkgray',
-            'darkgreen', 'darkgrey', 'darkkhaki', 'darkmagenta',
-            'darkolivegreen', 'darkorange', 'darkorchid', 'darkred',
-            'darksalmon', 'darkseagreen', 'darkslateblue', 'darkslategray',
-            'darkslategrey', 'darkturquoise', 'darkviolet', 'deeppink',
-            'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue', 'firebrick',
-            'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro', 'ghostwhite',
-            'gold', 'goldenrod', 'gray', 'green', 'greenyellow', 'grey',
-            'honeydew', 'hotpink', 'indianred', 'indigo', 'ivory', 'khaki',
-            'lavender', 'lavenderblush', 'lawngreen', 'lemonchiffon',
-            'lightblue', 'lightcoral', 'lightcyan', 'lightgoldenrodyellow',
-            'lightgray', 'lightgreen', 'lightgrey', 'lightpink', 'lightsalmon',
-            'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey',
-            'lightsteelblue', 'lightyellow', 'lime', 'limegreen', 'linen',
-            'magenta', 'maroon', 'mediumaquamarine', 'mediumblue',
-            'mediumorchid', 'mediumpurple', 'mediumseagreen', 'mediumslateblue',
-            'mediumspringgreen', 'mediumturquoise', 'mediumvioletred',
-            'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'navajowhite',
-            'navy', 'oldlace', 'olive', 'olivedrab', 'orange', 'orangered',
-            'orchid', 'palegoldenrod', 'palegreen', 'paleturquoise',
-            'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum',
-            'powderblue', 'purple', 'red', 'rosybrown', 'royalblue',
-            'saddlebrown', 'salmon', 'sandybrown', 'seagreen', 'seashell',
-            'sienna', 'silver', 'skyblue', 'slateblue', 'slategray',
-            'slategrey', 'snow', 'springgreen', 'steelblue', 'tan', 'teal',
-            'thistle', 'tomato', 'turquoise', 'violet', 'wheat', 'white',
-            'whitesmoke', 'yellow', 'yellowgreen'],
+            'transparent', 'currentcolor', 'black', 'silver', 'gray', 'white',
+            'maroon', 'red', 'purple', 'fuchsia', 'green', 'lime', 'olive',
+            'yellow', 'navy', 'blue', 'teal', 'aqua', 'aliceblue',
+            'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque',
+            'black', 'blanchedalmond', 'blue', 'blueviolet', 'brown',
+            'burlywood', 'cadetblue', 'chartreuse', 'chocolate', 'coral',
+            'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue',
+            'darkcyan', 'darkgoldenrod', 'darkgray', 'darkgreen', 'darkgrey',
+            'darkkhaki', 'darkmagenta', 'darkolivegreen', 'darkorange',
+            'darkorchid', 'darkred', 'darksalmon', 'darkseagreen',
+            'darkslateblue', 'darkslategray', 'darkslategrey', 'darkturquoise',
+            'darkviolet', 'deeppink', 'deepskyblue', 'dimgray', 'dimgrey',
+            'dodgerblue', 'firebrick', 'floralwhite', 'forestgreen', 'fuchsia',
+            'gainsboro', 'ghostwhite', 'gold', 'goldenrod', 'gray', 'green',
+            'greenyellow', 'grey', 'honeydew', 'hotpink', 'indianred', 'indigo',
+            'ivory', 'khaki', 'lavender', 'lavenderblush', 'lawngreen',
+            'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan',
+            'lightgoldenrodyellow', 'lightgray', 'lightgreen', 'lightgrey',
+            'lightpink', 'lightsalmon', 'lightseagreen', 'lightskyblue',
+            'lightslategray', 'lightslategrey', 'lightsteelblue', 'lightyellow',
+            'lime', 'limegreen', 'linen', 'magenta', 'maroon',
+            'mediumaquamarine', 'mediumblue', 'mediumorchid', 'mediumpurple',
+            'mediumseagreen', 'mediumslateblue', 'mediumspringgreen',
+            'mediumturquoise', 'mediumvioletred', 'midnightblue', 'mintcream',
+            'mistyrose', 'moccasin', 'navajowhite', 'navy', 'oldlace', 'olive',
+            'olivedrab', 'orange', 'orangered', 'orchid', 'palegoldenrod',
+            'palegreen', 'paleturquoise', 'palevioletred', 'papayawhip',
+            'peachpuff', 'peru', 'pink', 'plum', 'powderblue', 'purple', 'red',
+            'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+            'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue',
+            'slategray', 'slategrey', 'snow', 'springgreen', 'steelblue', 'tan',
+            'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat',
+            'white', 'whitesmoke', 'yellow', 'yellowgreen'],
         // ---------------------------------------------------------------------
         // :: Validate html color (it can be name or hex)
         // ---------------------------------------------------------------------
@@ -2427,9 +2450,8 @@
             }
         }
     };
-
     // -----------------------------------------------------------------------
-    // Helper plugins
+    // Helper plugins and functions
     // -----------------------------------------------------------------------
     $.fn.visible = function() {
         return this.css('visibility', 'visible');
@@ -2437,6 +2459,14 @@
     $.fn.hidden = function() {
         return this.css('visibility', 'hidden');
     };
+    // -----------------------------------------------------------------------
+    function warn(msg) {
+        if (console && console.warn) {
+            console.warn(msg);
+        } else {
+            throw new Error('WARN: ' + msg);
+        }
+    }
     // -----------------------------------------------------------------------
     // JSON-RPC CALL
     // -----------------------------------------------------------------------
@@ -2480,13 +2510,8 @@
             success: function(response, status, jqXHR) {
                 var content_type = jqXHR.getResponseHeader('Content-Type');
                 if (!content_type.match(/(application|text)\/json/)) {
-                    var msg = 'Response Content-Type is neither application/json' +
-                        ' nor text/json';
-                    if (console && console.warn) {
-                        console.warn(msg);
-                    } else {
-                        throw new Error('WARN: ' + msg);
-                    }
+                    warn('Response Content-Type is neither application/json' +
+                         ' nor text/json');
                 }
                 var json;
                 try {
@@ -3861,7 +3886,7 @@
             'CTRL+L': function() {
                 self.clear();
             },
-            'TAB': function() {
+            'TAB': function(e, orignal) {
                 // TODO: move this to cmd plugin
                 //       add completion = array | function
                 //       !!! Problem complete more then one key need terminal
@@ -3901,11 +3926,12 @@
                             throw new Error(strings.invalidCompletion);
                     }
                 } else {
-                    self.insert('\t'); // original tab is overwritten
+                    orignal();
                 }
                 return false;
             },
-            'CTRL+V': function() {
+            'CTRL+V': function(e, original) {
+                original(e);
                 self.oneTime(1, function() {
                     scroll_to_bottom();
                 });
@@ -4013,7 +4039,7 @@
                                 {name: self.selector},
                                 options || {});
         var storage = new StorageHelper(settings.memory);
-        var strings = $.extend({}, $.terminal.defaults.strings, options.strings);
+        var strings = $.extend({}, $.terminal.defaults.strings, settings.strings);
         var enabled = settings.enabled, frozen = false;
         var paused = false;
         var autologin = true; // set to false of onBeforeLogin return false
@@ -4769,8 +4795,6 @@
                         } else if ($.isFunction(settings.onResize)) {
                             settings.onResize.call(self, self);
                         }
-                        old_height = height;
-                        old_width = width;
                         scroll_to_bottom();
                     }
                 }
@@ -5364,7 +5388,7 @@
         $(document).bind('ajaxSend.terminal_' + self.id(), function(e, xhr) {
             requests.push(xhr);
         });
-        var wrapper = $('<div class="wrapper"/>').appendTo(self);
+        var wrapper = $('<div class="terminal-wrapper"/>').appendTo(self);
         var iframe = $('<iframe/>').appendTo(wrapper);
         output = $('<div>').addClass('terminal-output').appendTo(wrapper);
         self.addClass('terminal');
@@ -5509,7 +5533,12 @@
                     var isDragging = false;
                     var target;
                     self.mousedown(function(e) {
-                        target = $(e.target).parents().andSelf();
+                        var parents = $(e.target).parents();
+                        if (parents.addBack) {
+                            target = parents.addBack();
+                        } else {
+                            target = parents.andSelf();
+                        }
                         self.oneTime(1, function() {
                             $(window).on('mousemove.terminal_' + self.id(), function() {
                                 isDragging = true;
@@ -5557,15 +5586,12 @@
                     print_line(href);
                 }
             });
-            if (!navigator.platform.match(/linux/i)) {
-                // on linux system paste work with middle mouse button
-                self.mousedown(function(e) {
-                    if (e.which === 2) {
-                        var selected = get_selected_text();
-                        self.insert(selected);
-                    }
-                });
-            }
+            self.mousedown(function(e) {
+                if (e.which === 2) {
+                    var selected = get_selected_text();
+                    self.insert(selected);
+                }
+            });
             if (self.is(':visible')) {
                 num_chars = self.cols();
                 command_line.resize(num_chars);
@@ -5586,6 +5612,8 @@
                     if (old_height !== height || old_width !== width) {
                         self.resize();
                     }
+                    old_height = height;
+                    old_width = width;
                 }
             }
             self.oneTime(100, function() {
