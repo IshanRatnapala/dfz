@@ -38,6 +38,7 @@
             '[[b;#44D544;]>>> ACCESS GRANTED\n\n'
         ],
         loginGreeting: '[[b;#44D544;]>>> INITIALIZING PROGRAM <<<]\n',
+        wrongPasswordTryAgain: '>>> ACCESS DENIED',
         login: function(user, password, callback) {
 
             //todo: auth api call here
@@ -142,7 +143,8 @@
             strings: {
                 loginGreeting: terminalMethods.loginGreeting,
                 login: 'ENTER USER ID',
-                password: 'ENTER PASSCODE'
+                password: 'ENTER PASSCODE',
+                wrongPasswordTryAgain: terminalMethods.wrongPasswordTryAgain
             },
             login: terminalMethods.login,
             keypress: terminalMethods.keypress,
